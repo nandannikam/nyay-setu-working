@@ -116,7 +116,7 @@ async def build_kanoon_context(query: str, max_results: int = 3) -> tuple[str, l
         doc_texts = await asyncio.gather(*tasks, return_exceptions=True)
 
     for r, doc_text in zip(results, doc_texts):
-        if isinstance(doc_text, Exception):
+        if isinstance(doc_text, BaseException):
             logger.error("Indian Kanoon doc fetch error for %s: %s", r.get("doc_id"), doc_text)
             doc_text = ""
 

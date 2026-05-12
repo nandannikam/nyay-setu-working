@@ -89,6 +89,9 @@ async def legal_reasoning_pipeline(query: str, language: str):
     Fix: Removed inner async generator — research now runs as a background
     asyncio.Task while interim messages are yielded from the outer generator.
     """
+    kanoon_task = None
+    research_task = None
+
     try:
         # ── Layer 1: Decompose ───────────────────────────────────
         logger.info(f"[Layer 1] Decomposing: {query[:60]}...")
@@ -157,10 +160,29 @@ async def legal_reasoning_pipeline(query: str, language: str):
         yield sse_event("done", {"message": "Research complete"})
         logger.info("[Pipeline] Done ✓")
 
+    except (GeneratorExit, asyncio.CancelledError):
+        logger.info("[Pipeline] Client disconnected — cleaning up tasks")
+        raise
+
     except Exception as e:
         logger.error(f"[Pipeline] Fatal error: {e}")
         yield sse_event("error", {"message": str(e)})
         yield sse_event("done", {"message": "Error occurred"})
+
+    finally:
+        if kanoon_task is not None and not kanoon_task.done():
+            kanoon_task.cancel()
+            try:
+                await kanoon_task
+            except (asyncio.CancelledError, BaseException):
+                pass
+
+        if research_task is not None and not research_task.done():
+            research_task.cancel()
+            try:
+                await research_task
+            except (asyncio.CancelledError, BaseException):
+                pass
 
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
@@ -184,11 +206,15 @@ async def analyze_stream(body: LegalQuery, request: Request):
     logger.info(f"[Stream] New query: {body.query[:80]}")
 
     async def event_generator():
-        async for event in legal_reasoning_pipeline(body.query, body.language):
-            if await request.is_disconnected():
-                logger.info("[Stream] Client disconnected")
-                break
-            yield {"data": event}
+        pipeline = legal_reasoning_pipeline(body.query, body.language)
+        try:
+            async for event in pipeline:
+                if await request.is_disconnected():
+                    logger.info("[Stream] Client disconnected")
+                    break
+                yield {"data": event}
+        finally:
+            await pipeline.aclose()
 
     return EventSourceResponse(event_generator())
 
@@ -360,6 +386,7 @@ async def deep_research_pipeline(query: str, language: str):
         )
 
         # Call the AI model and stream reasoning
+        ai_answer = None
         if model_choice == "gemini" and gemini_client:
             try:
                 loop = asyncio.get_event_loop()
@@ -444,6 +471,10 @@ async def deep_research_pipeline(query: str, language: str):
         yield sse_event("done", {"message": "Deep research complete"})
         logger.info("[Deep Research] Pipeline complete ✓")
 
+    except (GeneratorExit, asyncio.CancelledError):
+        logger.info("[Deep Research] Client disconnected")
+        raise
+
     except Exception as e:
         logger.error(f"[Deep Research] Fatal error: {e}")
         yield sse_event("error", {"message": str(e)})
@@ -465,11 +496,15 @@ async def deep_research(body: LegalQuery, request: Request):
     logger.info(f"[Deep Research] New query: {body.query[:80]}")
 
     async def event_generator():
-        async for event in deep_research_pipeline(body.query, body.language):
-            if await request.is_disconnected():
-                logger.info("[Deep Research] Client disconnected")
-                break
-            yield {"data": event}
+        pipeline = deep_research_pipeline(body.query, body.language)
+        try:
+            async for event in pipeline:
+                if await request.is_disconnected():
+                    logger.info("[Deep Research] Client disconnected")
+                    break
+                yield {"data": event}
+        finally:
+            await pipeline.aclose()
 
     return EventSourceResponse(event_generator())
 
