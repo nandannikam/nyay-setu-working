@@ -383,7 +383,7 @@ async def deep_research_pipeline(query: str, language: str):
                grounded_prompt,
                query
             )
-        ai_answer = response.choices[0].message.content.strip()
+           ai_answer = response.choices[0].message.content.strip()
 
         # Stream reasoning text in chunks for live display
         if ai_answer:
