@@ -194,18 +194,7 @@ an empty context string.
 ---
 
 ## Project Structure
-lawgpt-service/
-├── main.py                 # FastAPI app entry point
-├── requirements.txt        # Python dependencies
-├── .env.example            # Environment variable template
-├── .gitignore
-├── lawgpt/
-│   ├── ingest.py           # PDF → chunks → embeddings → FAISS
-│   └── retriever.py        # FAISS loader and search
-├── routers/
-│   └── context.py          # /context, /chat, /health endpoints
-├── legal_corpus/           # Drop PDFs here (gitignored)
-└── vector_store/           # FAISS index saved here (gitignored)
+<img width="820" height="399" alt="image" src="https://github.com/user-attachments/assets/dc7f1e0c-703f-4cdc-b251-4ee233ed6c08" />
 
 ---
 
