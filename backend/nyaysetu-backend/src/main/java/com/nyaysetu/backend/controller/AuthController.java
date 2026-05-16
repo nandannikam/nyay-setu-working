@@ -85,22 +85,49 @@ public class AuthController {
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(req.getEmail());
             String token = jwtService.generateToken(new HashMap<>(), userDetails);
+            String refreshToken = jwtService.generateRefreshToken(userDetails);
 
             var user = authService.findByEmail(req.getEmail());
 
             Map<String, Object> response = new HashMap<>();
             response.put("token", token);
-            response.put("user", Map.of(
-                "id", user.getId(),
-                "name", user.getName(),
-                "email", user.getEmail(),
-                "role", user.getRole().name()
-            ));
+            response.put("accessToken", token);
+            response.put("refreshToken", refreshToken);
 
             return ResponseEntity.ok(response);
         }
         catch (BadCredentialsException ex) {
             return ResponseEntity.status(401).body(Map.of("message", "Invalid credentials"));
+        }
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@Valid @RequestBody RefreshTokenRequest req) {
+        try {
+            String refreshToken = req.getRefreshToken();
+            String username = jwtService.extractUsername(refreshToken);
+
+            if (username == null) {
+                return ResponseEntity.status(401).body(Map.of("message", "Invalid refresh token"));
+            }
+
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+            if (!jwtService.isTokenValid(refreshToken, userDetails)) {
+                return ResponseEntity.status(401).body(Map.of("message", "Refresh token expired or invalid. Please login again."));
+            }
+
+            // Issue a new short-lived access token
+            String newAccessToken = jwtService.generateToken(new HashMap<>(), userDetails);
+
+            return ResponseEntity.ok(Map.of(
+                    "accessToken", newAccessToken,
+                    "message", "Token refreshed successfully"
+            ));
+
+        } catch (Exception e) {
+            log.error("Token refresh failed", e);
+            return ResponseEntity.status(401).body(Map.of("message", "Token refresh failed. Please login again."));
         }
     }
 
