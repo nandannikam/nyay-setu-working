@@ -60,6 +60,7 @@ export default function Header({ hideAuthButtons = false }) {
     const navItems = [
         { labelKey: 'header.nav.home',        href: '/',            isRoute: true },
         { labelKey: 'header.nav.features',    href: '/#features' },
+        { labelKey: 'Upcoming Features',      href: '/upcoming-features', isRoute: true },
         { labelKey: 'header.nav.constitution',href: '/constitution', isRoute: true },
         { labelKey: 'header.nav.aiAssistant', action: () => setShowAIModal(true) },
         { labelKey: 'header.nav.about',       href: '/about',       isRoute: true },
@@ -85,6 +86,9 @@ export default function Header({ hideAuthButtons = false }) {
 
     const renderNavItem = (item) => {
         const baseStyle = navLinkStyle(item.href);
+        // Fallback to labelKey directly if translation returns the exact key
+        const displayLabel = t(item.labelKey) === item.labelKey ? item.labelKey : t(item.labelKey);
+        
         if (item.action) {
             return (
                 <button
@@ -94,7 +98,7 @@ export default function Header({ hideAuthButtons = false }) {
                     onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary)'}
                     onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
                 >
-                    {t(item.labelKey)}
+                    {displayLabel}
                 </button>
             );
         }
@@ -107,7 +111,7 @@ export default function Header({ hideAuthButtons = false }) {
                     onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary)'}
                     onMouseLeave={e => e.currentTarget.style.color = location.pathname === item.href ? 'var(--color-primary)' : 'var(--text-secondary)'}
                 >
-                    {t(item.labelKey)}
+                    {displayLabel}
                 </Link>
             );
         }
@@ -119,7 +123,7 @@ export default function Header({ hideAuthButtons = false }) {
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
             >
-                {t(item.labelKey)}
+                {displayLabel}
             </a>
         );
     };
@@ -469,23 +473,26 @@ export default function Header({ hideAuthButtons = false }) {
                                         cursor: 'pointer',
                                         fontFamily: 'inherit',
                                     };
+                                    
+                                    const displayLabel = t(item.labelKey) === item.labelKey ? item.labelKey : t(item.labelKey);
+
                                     if (item.action) {
                                         return (
                                             <button key={item.labelKey} onClick={() => { item.action(); setIsMobileMenuOpen(false); }} style={sharedStyle}>
-                                                {t(item.labelKey)}
+                                                {displayLabel}
                                             </button>
                                         );
                                     }
                                     if (item.isRoute) {
                                         return (
                                             <Link key={item.labelKey} to={item.href} onClick={() => setIsMobileMenuOpen(false)} style={sharedStyle}>
-                                                {t(item.labelKey)}
+                                                {displayLabel}
                                             </Link>
                                         );
                                     }
                                     return (
                                         <a key={item.labelKey} href={item.href} onClick={() => setIsMobileMenuOpen(false)} style={sharedStyle}>
-                                            {t(item.labelKey)}
+                                            {displayLabel}
                                         </a>
                                     );
                                 })}
