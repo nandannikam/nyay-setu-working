@@ -470,7 +470,7 @@ export default function VakilFriendChat() {
                 try {
                     recognition.start();
                 } catch (e) {
-                    console.log("Recognition auto-restart suppressed");
+                 //   console.log("Recognition auto-restart suppressed");
                     setIsRecording(false);
                 }
             } else {
@@ -526,7 +526,7 @@ export default function VakilFriendChat() {
                 // If we have a buffer built up, send it!
                 if (commandBufferRef.current.trim().length > 2) {
                     const finalCommand = commandBufferRef.current.trim();
-                    console.log("Silence detected. Sending command:", finalCommand);
+                 //   console.log("Silence detected. Sending command:", finalCommand);
                     sendMessage(null, finalCommand);
 
                     commandBufferRef.current = '';
@@ -735,7 +735,7 @@ export default function VakilFriendChat() {
         try {
             // Use Nyay Saarthi AI document analysis
             if (sessionId) {
-                console.log('🔍 Analyzing document with AI...');
+               // console.log('🔍 Analyzing document with AI...');
                 const response = await vakilFriendAPI.analyzeDocumentForSession(sessionId, file);
                 const analysis = response.data;
 
@@ -1318,7 +1318,7 @@ export default function VakilFriendChat() {
                     </button>
                     <button
                         onClick={() => {
-                            console.log('History button clicked, showHistory:', showHistory);
+                          //  console.log('History button clicked, showHistory:', showHistory);
                             setShowHistory(true);
                         }}
                         style={{

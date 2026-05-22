@@ -34,8 +34,7 @@ from synthesizer import synthesize_answers
 from validators.citation_validator import validate_citations_from_text
 from avatar_speech import get_interim_messages, convert_to_hinglish, detect_domain
 from services.kanoon_search import build_kanoon_context
-# from routers.forensics import router as forensics_router
-# from routers.modi_ocr import router as modi_ocr_router
+
 
 # Initialize clients for deep research pipeline
 from groq import AsyncGroq
@@ -77,8 +76,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# app.include_router(forensics_router)
-# app.include_router(modi_ocr_router)
+try:
+    from routers.forensics import router as forensics_router
+    app.include_router(forensics_router)
+    logger.info("Loaded forensics router.")
+except ImportError:
+    logger.warning("Skipping forensics router due to missing dependencies.")
+
+try:
+    from routers.modi_ocr import router as modi_ocr_router
+    app.include_router(modi_ocr_router)
+    logger.info("Loaded modi_ocr router.")
+except ImportError:
+    logger.warning("Skipping modi_ocr router due to missing dependencies.")
 
 
 # ─── Models ───────────────────────────────────────────────────────────────────
