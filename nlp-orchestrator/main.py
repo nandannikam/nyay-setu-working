@@ -38,7 +38,7 @@ from synthesizer import synthesize_answers
 from validators.citation_validator import validate_citations_from_text
 from avatar_speech import get_interim_messages, convert_to_hinglish, detect_domain
 from services.kanoon_search import build_kanoon_context
-
+from sanitizer import sanitize_user_input, sanitize_prompt_input
 
 # Initialize clients for deep research pipeline
 from groq import AsyncGroq
