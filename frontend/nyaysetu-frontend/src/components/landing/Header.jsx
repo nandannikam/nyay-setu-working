@@ -84,61 +84,124 @@ export default function Header({ hideAuthButtons = false }) {
     const isDark = theme === 'dark';
 
     const navLinkStyle = (href) => ({
-        color: location.pathname === href ? 'var(--color-primary)' : 'var(--text-secondary)',
+        position: 'relative',
+        color:
+            location.pathname === href
+                ? 'var(--color-primary)'
+                : 'var(--text-secondary)',
+
         textDecoration: 'none',
         fontSize: '0.925rem',
         fontWeight: location.pathname === href ? '600' : '500',
         cursor: 'pointer',
-        padding: '0.25rem 0',
-        borderBottom: location.pathname === href
-            ? '2px solid var(--color-primary)'
-            : '2px solid transparent',
-        transition: 'color 0.2s ease, border-color 0.2s ease',
+        padding: '0.35rem 0',
         background: 'none',
         border: 'none',
         fontFamily: 'inherit',
+        transition: 'color 0.3s ease',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        lineHeight: '1',
     });
 
     const renderNavItem = (item) => {
         const baseStyle = navLinkStyle(item.href);
-        // Fallback to labelKey directly if translation returns the exact key
-        const displayLabel = t(item.labelKey) === item.labelKey ? item.labelKey : t(item.labelKey);
+
+        const displayLabel =
+            t(item.labelKey) === item.labelKey
+                ? item.labelKey
+                : t(item.labelKey);
+
+        const underline = (
+            <span
+                style={{
+                    position: 'absolute',
+                    left: '50%',
+                    bottom: '-4px',
+                    width: '72%',
+                    height: '3px',
+                    borderRadius: '999px',
+                    background:'var(--color-primary)',
+
+                    transform:
+                        location.pathname === item.href
+                            ? 'translateX(-50%) scaleX(1)'
+                            : 'translateX(-50%) scaleX(0)',
+
+                    transformOrigin: 'center',
+                    transition: 'transform 0.3s ease',
+                }}
+                className="nav-underline"
+            />
+        );
+
+        const sharedProps = {
+            style: baseStyle,
+            onMouseEnter: e => {
+                e.currentTarget.style.color = 'var(--color-primary)';
+                const underline =
+                    e.currentTarget.querySelector('.nav-underline');
+
+                if (underline) {
+                    underline.style.transform =
+                        'translateX(-50%) scaleX(1)';
+                }
+            },
+
+            onMouseLeave: e => {
+                e.currentTarget.style.color =
+                    location.pathname === item.href
+                        ? 'var(--color-primary)'
+                        : 'var(--text-secondary)';
+
+                const underline =
+                    e.currentTarget.querySelector('.nav-underline');
+
+                if (
+                    underline &&
+                    location.pathname !== item.href
+                ) {
+                    underline.style.transform =
+                        'translateX(-50%) scaleX(0)';
+                }
+            },
+        };
 
         if (item.action) {
             return (
                 <button
                     key={item.labelKey}
                     onClick={item.action}
-                    style={baseStyle}
-                    onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary)'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                    {...sharedProps}
                 >
                     {displayLabel}
+                    {underline}
                 </button>
             );
         }
+
         if (item.isRoute) {
             return (
                 <Link
                     key={item.labelKey}
                     to={item.href}
-                    style={baseStyle}
-                    onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary)'}
-                    onMouseLeave={e => e.currentTarget.style.color = location.pathname === item.href ? 'var(--color-primary)' : 'var(--text-secondary)'}
+                    {...sharedProps}
                 >
                     {displayLabel}
+                    {underline}
                 </Link>
             );
         }
+
         return (
             <a
                 key={item.labelKey}
                 href={item.href}
-                style={baseStyle}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                {...sharedProps}
             >
                 {displayLabel}
+                {underline}
             </a>
         );
     };
