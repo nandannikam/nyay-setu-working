@@ -643,8 +643,8 @@ export default function VakilFriendChat() {
 
             // Build success message with all details
             let successMessage = `✅ **Case Filed Successfully!**\n\n`;
-            successMessage += `📋 **Case ID:** ${data.caseId}\n`;
-            successMessage += `📝 **Title:** ${data.caseTitle}\n`;
+            successMessage += `📋 **Case ID:** ${data.id}\n`;
+             successMessage += `📝 **Title:** ${data.title}\n`;
             successMessage += `🏷️ **Type:** ${data.caseType}\n`;
             successMessage += `⚡ **Urgency:** ${data.urgency}\n`;
             successMessage += `👤 **Petitioner:** ${data.petitioner}\n`;
