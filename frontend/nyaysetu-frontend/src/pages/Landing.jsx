@@ -104,14 +104,16 @@ export default function Landing() {
             <Header />
             <AIChatbot />
 
-            <main>
+            {/* Offset content for the fixed header (mobile-safe). */}
+            <main style={{ paddingTop: '75px' }}>
                 {/* ── Hero ──────────────────────────────────────────── */}
                 <section style={{
                     minHeight: '100vh',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'center',
-                    padding: '9rem 2rem 4rem',
+                    // Keep existing spacing while accounting for <Header /> fixed height.
+                    padding: 'calc(9rem - 75px) 2rem 4rem',
                     position: 'relative',
                     overflow: 'hidden',
                 }}>
@@ -275,7 +277,7 @@ export default function Landing() {
                                         width="720"
                                         height="720"
                                         loading="eager"
-                                        fetchPriority="high"
+                                       fetchpriority="high"
                                         decoding="async"
                                         animate={{ y: [0, -14, 0] }}
                                         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}

@@ -50,17 +50,15 @@ public class SecurityConfig {
 
     @PostConstruct
     public void validateJwtSecretConfiguration() {
-        boolean isProd = java.util.Arrays.stream(environment.getActiveProfiles())
-                .anyMatch("prod"::equalsIgnoreCase);
         boolean isDev = java.util.Arrays.stream(environment.getActiveProfiles())
-                .anyMatch("dev"::equalsIgnoreCase);
+                .anyMatch(profile -> profile.equalsIgnoreCase("dev") || profile.equalsIgnoreCase("test"));
         String jwtSecretEnv = System.getenv("JWT_SECRET");
         boolean isJwtSecretEnvMissing = jwtSecretEnv == null || jwtSecretEnv.trim().isEmpty();
         boolean isUsingDefaultSecret = DEFAULT_JWT_SECRET.equals(jwtSecret);
 
-        if (isProd && (isJwtSecretEnvMissing || isUsingDefaultSecret)) {
+        if (!isDev && (isJwtSecretEnvMissing || isUsingDefaultSecret)) {
             throw new IllegalStateException(
-                    "Security configuration error: JWT_SECRET environment variable is required in production. "
+                    "Security configuration error: JWT_SECRET environment variable is required in non-development deployments. "
                             + "Application startup is blocked to prevent using an insecure default JWT signing key.");
         }
 
@@ -159,7 +157,31 @@ public class SecurityConfig {
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.deny())
                         .contentSecurityPolicy(csp -> csp
-                                .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cdn.jsdelivr.net https://nyaysetubackend.onrender.com; frame-ancestors 'none';"))
+                                // Strict CSP for API responses. Mirrors the
+                                // frontend nginx.conf policy so that any
+                                // HTML/error page Spring serves (e.g. the
+                                // default whitelabel error pages) is also
+                                // protected. Adjust directives here when you
+                                // adjust them in nginx.conf.
+                                .policyDirectives(
+                                    "default-src 'self'; " +
+                                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " +
+                                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                                    "img-src 'self' data: https:; " +
+                                    "font-src 'self' https://fonts.gstatic.com; " +
+                                    "connect-src 'self' wss: https://cdn.jsdelivr.net https://nyaysetubackend.onrender.com; " +
+                                    "frame-ancestors 'none'; " +
+                                    "object-src 'none'; " +
+                                    "base-uri 'self'; " +
+                                    "form-action 'self'; " +
+                                    "upgrade-insecure-requests"
+                                ))
+                                .referrerPolicy(rp -> rp.policy(
+                                    org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN
+                                ))
+                                .permissionsPolicy(pp -> pp.policy(
+                                    "geolocation=(), microphone=(), camera=(), payment=()"
+                                ))
                 )
                 .authorizeHttpRequests(auth -> auth
 
