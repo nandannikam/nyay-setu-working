@@ -12,6 +12,7 @@ import java.util.UUID;
 @Repository
 public interface DocumentRepository extends JpaRepository<DocumentEntity, UUID> {
     List<DocumentEntity> findByCaseId(UUID caseId);
+    long countByCaseId(UUID caseId);
     List<DocumentEntity> findByCategoryAndDescriptionContaining(String category, String description);
     Page<DocumentEntity> findByUploadedBy(Long uploadedBy, Pageable pageable);
 }
