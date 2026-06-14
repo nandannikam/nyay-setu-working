@@ -83,14 +83,12 @@ export default function LiveHearing() {
                     ...h,
                     caseTitle: h.caseEntity?.title || 'Untitled Case',
                     caseId: h.caseEntity?.id || h.id,
-                    fullDate: date,
                     time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
                     dateStr: date.toLocaleDateString([], { month: 'short', day: '2-digit' }),
                     isLive: isLive(date, h.durationMinutes),
                     isUpcoming: isUpcoming(date)
                 };
             });
-
             setHearings(formatted);
             setErrorMessage('');
         } catch (error) {
@@ -108,7 +106,6 @@ export default function LiveHearing() {
 
     const isUpcoming = (date) => {
         const now = new Date();
-        const diffHours = (date - now) / (1000 * 60 * 60);
         return diffHours > 0 && diffHours <= 24;
     };
 
