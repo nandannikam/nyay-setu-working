@@ -29,14 +29,14 @@ export default function LiveHearing() {
         if (activeHearing && isCaptioningEnabled) {
             wsRef.current = new WebSocket(`ws://localhost:8001/ws/audio-stream?lang=${targetLanguage}`);
             
-            wsRef.current.onopen = () => console.log("WebSocket connected for live captioning.");
+            wsRef.current.onopen = () => {};
             
             wsRef.current.onmessage = (event) => {
                 setCaptions(event.data);
                 setTimeout(() => setCaptions(""), 5000);
             };
 
-            wsRef.current.onerror = (error) => console.error("WebSocket error:", error);
+            wsRef.current.onerror = (error) => {};
 
             const startCapturing = async () => {
                 try {
@@ -54,7 +54,6 @@ export default function LiveHearing() {
 
                     mediaRecorderRef.current.start(2000); 
                 } catch (error) {
-                    console.error("Error initializing MediaRecorder for captions:", error);
                     setErrorMessage("Could not access microphone for live captions.");
                 }
             };
