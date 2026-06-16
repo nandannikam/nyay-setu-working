@@ -94,13 +94,12 @@ public class AuthController {
         log.debug("Login endpoint reached for email: {}", req.getEmail());
         try {
             User user1 = userRepository.findByEmail(req.getEmail())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
             if (user1.getAuthProvider() == AuthProvider.GOOGLE) {
                 return ResponseEntity.status(400)
-                        .body(Map.of(
-                                "message",
-                                "This account uses Google Sign-In. Please login with Google."
+                    .body(Map.of(
+                            "message",
+                            "This account uses Google Sign-In. Please login with Google."
                         ));
             }
             authenticationManager.authenticate(
