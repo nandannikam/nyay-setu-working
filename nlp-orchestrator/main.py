@@ -364,31 +364,33 @@ async def get_models():
         "gemini": {"model": GEMINI_MODEL, "available": bool(GEMINI_API_KEY)},
     }
 
+
 # ─── Audio Streaming WebSocket (Issue #1322) ──────────────────────────────────
 @app.websocket("/ws/audio-stream")
 async def audio_stream_endpoint(websocket: WebSocket):
     await websocket.accept()
     logger.info("WebSocket connection established for live captions.")
-    
+
     try:
         while True:
             # 1. Receive the audio chunk from the frontend
             data = await websocket.receive_bytes()
             logger.info(f"Received audio chunk: {len(data)} bytes")
-            
+
             # 2. Lightweight fallback for local dev (Simulate AI processing)
             await asyncio.sleep(0.5)
-            
+
             # 3. Return a mock translated caption string
             mock_caption = "[Simulated Live Caption]: न्यायालय की कार्यवाही... / Court proceedings..."
-            
+
             # 4. Send the transcribed text back to the frontend
             await websocket.send_text(mock_caption)
-            
+
     except WebSocketDisconnect:
         logger.info("WebSocket connection closed by client.")
     except Exception as e:
         logger.error(f"Error in audio stream WebSocket: {e}")
+
 
 @app.post("/api/legal/analyze-stream")
 async def analyze_stream(body: LegalQuery, request: Request):
