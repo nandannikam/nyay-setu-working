@@ -89,7 +89,7 @@ def classify_question(question: str) -> str:
     if simple_score >= 1 and complex_score == 0:
         return "groq"
 
-    # Length heuristic: short factual questions → Groq, longer analytical → Gemini
+    # Length heuristic: short factual questions → Groq, longer analytical → Gemini  # noqa
     word_count = len(question.split())
     if word_count <= 12:
         return "groq"
@@ -105,4 +105,6 @@ def route_questions(sub_questions: list[str]) -> list[dict]:
     Route each sub-question to the best model.
     Returns: list of {question, model}
     """
-    return [{"question": q, "model": classify_question(q)} for q in sub_questions]
+    return [
+        {"question": q, "model": classify_question(q)} for q in sub_questions
+    ]

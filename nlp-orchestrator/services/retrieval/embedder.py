@@ -6,9 +6,9 @@ Replaces `sentence-transformers/all-MiniLM-L6-v2` (384-dim) for higher legal
 domain fidelity. Mean pooling is applied automatically for InLegalBERT since it
 is not a native SBERT model.
 
-The model is loaded on first use, behind a lock, so multiple concurrent requests
-hitting cold start do not try to instantiate it in parallel. All public calls are
-async-friendly: blocking encode work runs in the default executor so the FastAPI
+The model is loaded on first use, behind a lock, so multiple concurrent requests  # noqa
+hitting cold start do not try to instantiate it in parallel. All public calls are  # noqa
+async-friendly: blocking encode work runs in the default executor so the FastAPI  # noqa
 event loop is never stalled.
 """
 
@@ -43,7 +43,7 @@ def _load_model(model_name: str):
                 from transformers import AutoModel, AutoTokenizer
 
                 logger.info(
-                    "Using HuggingFace AutoModel with mean pooling for InLegalBERT"
+                    "Using HuggingFace AutoModel with mean pooling for InLegalBERT"  # noqa
                 )
                 tokenizer = AutoTokenizer.from_pretrained(model_name)
                 hf_model = AutoModel.from_pretrained(model_name)
@@ -93,7 +93,7 @@ def _load_model(model_name: str):
                     from sentence_transformers import SentenceTransformer
                 except ImportError:
                     logger.warning(
-                        "sentence-transformers is not installed; embedder disabled. "
+                        "sentence-transformers is not installed; embedder disabled. "  # noqa
                         "Install with: pip install sentence-transformers"
                     )
                     _model = None
@@ -101,9 +101,9 @@ def _load_model(model_name: str):
                 _model = SentenceTransformer(model_name)
 
             _model_name = model_name
-            dim_fn = getattr(_model, "get_embedding_dimension", None) or getattr(
-                _model, "get_sentence_embedding_dimension", None
-            )
+            dim_fn = getattr(
+                _model, "get_embedding_dimension", None
+            ) or getattr(_model, "get_sentence_embedding_dimension", None)
             dim = dim_fn() if dim_fn else "?"
             logger.info(f"Embedding model ready ({dim}-dim)")
         except Exception as e:
@@ -112,8 +112,10 @@ def _load_model(model_name: str):
         return _model
 
 
-def embed_sync(texts: list[str], model_name: str) -> Optional[list[list[float]]]:
-    """Encode `texts` synchronously. Returns None if the model is unavailable."""
+def embed_sync(
+    texts: list[str], model_name: str
+) -> Optional[list[list[float]]]:
+    """Encode `texts` synchronously. Returns None if the model is unavailable."""  # noqa
     if not texts:
         return []
 

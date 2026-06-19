@@ -13,17 +13,20 @@ import os
 os.environ.setdefault("GROQ_API_KEY", "test-key-not-used")
 
 # The OCR service imports cv2/Pillow at module load. Skip cleanly if absent.
-import pytest
+import pytest  # noqa: E402
 
 pytest.importorskip("cv2")
 pytest.importorskip("PIL")
 
-import asyncio
-import time
-from unittest.mock import patch
+import asyncio  # noqa: E402
+import time  # noqa: E402
+from unittest.mock import patch  # noqa: E402
 
-import services.modi_ocr as modi_ocr
-from services.modi_ocr import recognize_modi_pages, ModiOCRServiceError
+import services.modi_ocr as modi_ocr  # noqa: E402
+from services.modi_ocr import (  # noqa
+    recognize_modi_pages,
+    ModiOCRServiceError,
+)  # noqa: E402
 
 
 @pytest.mark.asyncio
@@ -43,7 +46,9 @@ async def test_all_pages_processed_in_order():
 
     assert [r["page"] for r in results] == [1, 2, 3, 4, 5, 6]
     assert all(r["status"] == "success" for r in results)
-    assert [r["predicted_text"] for r in results] == [f"PAGE-{i}" for i in range(6)]
+    assert [r["predicted_text"] for r in results] == [
+        f"PAGE-{i}" for i in range(6)
+    ]
 
 
 @pytest.mark.asyncio
@@ -66,7 +71,9 @@ async def test_concurrency_is_bounded_by_limit():
         results = await recognize_modi_pages(pages, max_concurrency=limit)
 
     assert len(results) == 12
-    assert state["peak"] <= limit, f"peak {state['peak']} exceeded limit {limit}"
+    assert (
+        state["peak"] <= limit
+    ), f"peak {state['peak']} exceeded limit {limit}"
     # With 12 pages and a limit of 4, the limit should actually be reached.
     assert state["peak"] == limit
 
@@ -85,7 +92,7 @@ async def test_pages_run_in_parallel_not_sequentially():
         await recognize_modi_pages(pages, max_concurrency=8)
         elapsed = time.perf_counter() - start
 
-    # Sequential would be ~8 * 0.05 = 0.4s; parallel (limit 8) should be ~0.05s.
+    # Sequential would be ~8 * 0.05 = 0.4s; parallel (limit 8) should be ~0.05s.  # noqa
     assert elapsed < per_page * len(pages) * 0.6
 
 
@@ -101,11 +108,18 @@ async def test_one_failing_page_does_not_sink_the_batch():
     with patch.object(modi_ocr, "recognize_modi_image", side_effect=fake):
         results = await recognize_modi_pages(pages)
 
-    assert results[0]["status"] == "success" and results[0]["predicted_text"] == "good1"
     assert (
-        results[1]["status"] == "error" and "inference blew up" in results[1]["error"]
+        results[0]["status"] == "success"
+        and results[0]["predicted_text"] == "good1"
     )
-    assert results[2]["status"] == "success" and results[2]["predicted_text"] == "good2"
+    assert (
+        results[1]["status"] == "error"
+        and "inference blew up" in results[1]["error"]
+    )
+    assert (
+        results[2]["status"] == "success"
+        and results[2]["predicted_text"] == "good2"
+    )
 
 
 @pytest.mark.asyncio

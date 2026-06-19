@@ -118,7 +118,7 @@ class CircuitBreaker:
             if self.failure_count >= self.failure_threshold:
                 self.state = "OPEN"
                 logger.warning(
-                    f"[CircuitBreaker] State → OPEN after {self.failure_count} failures"
+                    f"[CircuitBreaker] State → OPEN after {self.failure_count} failures"  # noqa
                 )
 
     async def is_available(self):
@@ -126,9 +126,14 @@ class CircuitBreaker:
             if self.state == "CLOSED":
                 return True
             if self.state == "OPEN":
-                if time.time() - self.last_failure_time >= self.recovery_timeout:
+                if (
+                    time.time() - self.last_failure_time
+                    >= self.recovery_timeout
+                ):
                     self.state = "HALF_OPEN"
-                    logger.info("[CircuitBreaker] State → HALF_OPEN, sending probe")
+                    logger.info(
+                        "[CircuitBreaker] State → HALF_OPEN, sending probe"
+                    )
                     return True
                 return False
             if self.state == "HALF_OPEN":

@@ -25,7 +25,9 @@ def split_sentences(text: str) -> list[str]:
     if not cleaned:
         return []
     return [
-        item.strip() for item in re.split(r"(?<=[.!?])\s+", cleaned) if item.strip()
+        item.strip()
+        for item in re.split(r"(?<=[.!?])\s+", cleaned)
+        if item.strip()
     ]
 
 
@@ -45,7 +47,10 @@ def normalize_time(match: re.Match) -> str:
 def normalize_location(value: str) -> str:
     value = re.sub(r"\s+", " ", value.strip())
     value = re.sub(
-        r"\b(on|at|when|where|while|and|but)\b.*$", "", value, flags=re.IGNORECASE
+        r"\b(on|at|when|where|while|and|but)\b.*$",
+        "",
+        value,
+        flags=re.IGNORECASE,
     )
     return value.strip(" ,.-").lower()
 
@@ -165,7 +170,7 @@ def detect_contradictions(
     seen: set[str] = set()
 
     for index, claim_a in enumerate(claims):
-        for claim_b in claims[index + 1 :]:
+        for claim_b in claims[index + 1 :]:  # noqa
             if claim_a["document_id"] == claim_b["document_id"]:
                 continue
 
@@ -182,8 +187,12 @@ def detect_contradictions(
                 seen.add(contradiction["id"])
 
     severity_counts = {
-        "High": sum(1 for item in contradictions if item["severity"] == "High"),
-        "Medium": sum(1 for item in contradictions if item["severity"] == "Medium"),
+        "High": sum(
+            1 for item in contradictions if item["severity"] == "High"
+        ),
+        "Medium": sum(
+            1 for item in contradictions if item["severity"] == "Medium"
+        ),
         "Low": sum(1 for item in contradictions if item["severity"] == "Low"),
     }
 

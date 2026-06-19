@@ -52,7 +52,7 @@ DOC_TIMEOUT = aiohttp.ClientTimeout(total=30)
 kanoon_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=60)
 
 
-# ─── HTTP layer ───────────────────────────────────────────────────────────────
+# ─── HTTP layer ───────────────────────────────────────────────────────────────  # noqa
 
 
 @retry_transient
@@ -210,19 +210,21 @@ async def get_kanoon_doc(
         if session is not None:
             result = await _fetch_doc(session, url, headers, max_chars)
         else:
-            async with aiohttp.ClientSession(timeout=DOC_TIMEOUT) as new_session:
+            async with aiohttp.ClientSession(
+                timeout=DOC_TIMEOUT
+            ) as new_session:
                 result = await _fetch_doc(new_session, url, headers, max_chars)
         await kanoon_breaker.call_succeeded()
         return result
     except Exception as e:
         await kanoon_breaker.call_failed()
         logger.error(
-            f"Kanoon doc fetch error (doc_id={doc_id}): {type(e).__name__}: {e}"
+            f"Kanoon doc fetch error (doc_id={doc_id}): {type(e).__name__}: {e}"  # noqa
         )
         return ""
 
 
-# ─── Ingestion ────────────────────────────────────────────────────────────────
+# ─── Ingestion ────────────────────────────────────────────────────────────────  # noqa
 
 
 async def _ingest_doc(
@@ -254,14 +256,14 @@ async def _ingest_doc(
     chunks = chunker.chunk_text(text, max_tokens=512, overlap_tokens=64)
     if not chunks:
         logger.warning(
-            f"[_ingest_doc] {doc_id}: chunker produced 0 chunks from {len(text)} chars"
+            f"[_ingest_doc] {doc_id}: chunker produced 0 chunks from {len(text)} chars"  # noqa
         )
         return 0
 
     embeddings = await embedder.embed_async(chunks, EMBEDDING_MODEL)
     if not embeddings:
         logger.error(
-            f"[_ingest_doc] {doc_id}: embedder returned None (model unavailable?)"
+            f"[_ingest_doc] {doc_id}: embedder returned None (model unavailable?)"  # noqa
         )
         return 0
 
@@ -279,7 +281,7 @@ async def _ingest_doc(
     return added
 
 
-# ─── Public RAG entry point (signature preserved) ─────────────────────────────
+# ─── Public RAG entry point (signature preserved) ─────────────────────────────  # noqa
 
 
 async def build_kanoon_context(
@@ -301,7 +303,7 @@ async def build_kanoon_context(
 
     Returns: (context_string, results_metadata) — signature preserved.
     """
-    # Step 1: live search (always invoked; circuit breaker guards backpressure).
+    # Step 1: live search (always invoked; circuit breaker guards backpressure).  # noqa
     live_results = await search_kanoon(query, max_results=max_results)
 
     # Step 2: legacy fallback path when retrieval is disabled.
@@ -328,7 +330,9 @@ async def build_kanoon_context(
         persist_dir=CHROMA_PATH,
     )
     if not candidates:
-        logger.info("Vector store returned no candidates; using legacy fallback")
+        logger.info(
+            "Vector store returned no candidates; using legacy fallback"
+        )
         return await _legacy_context(live_results), live_results[:max_results]
 
     # Step 5: optional cross-encoder rerank.
@@ -365,7 +369,7 @@ async def build_kanoon_context(
     return context, enriched_meta
 
 
-# ─── Output formatting + legacy fallback ──────────────────────────────────────
+# ─── Output formatting + legacy fallback ──────────────────────────────────────  # noqa
 
 
 def _format_context(candidates: list[dict]) -> str:
@@ -379,9 +383,13 @@ def _format_context(candidates: list[dict]) -> str:
         doc_id = meta.get("doc_id", "")
 
         seen[title] = seen.get(title, 0) + 1
-        marker = title if seen[title] == 1 else f"{title} (excerpt {seen[title]})"
+        marker = (
+            title if seen[title] == 1 else f"{title} (excerpt {seen[title]})"
+        )
 
-        parts.append(f"=== {marker} [doc_id={doc_id}] ===\n{cand.get('chunk', '')}\n")
+        parts.append(
+            f"=== {marker} [doc_id={doc_id}] ===\n{cand.get('chunk', '')}\n"
+        )
 
     return "\n".join(parts)
 
@@ -422,7 +430,9 @@ def _enrich_results(
     if not best_per_doc:
         return live_results[:max_results]
 
-    ordered = sorted(best_per_doc.values(), key=lambda d: d["score"], reverse=True)
+    ordered = sorted(
+        best_per_doc.values(), key=lambda d: d["score"], reverse=True
+    )
     return ordered[:max_results]
 
 
@@ -457,7 +467,7 @@ async def _legacy_context(live_results: list[dict]) -> str:
     return "\n".join(parts)
 
 
-# ─── HTML helpers ─────────────────────────────────────────────────────────────
+# ─── HTML helpers ─────────────────────────────────────────────────────────────  # noqa
 
 
 _TAG_RE = re.compile(r"<[^>]+>")

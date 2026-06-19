@@ -1,4 +1,3 @@
-import asyncio
 import pytest
 from unittest.mock import AsyncMock, patch
 
@@ -15,9 +14,9 @@ async def test_primary_provider_success():
         "is_fallback": False,
     }
 
-    with patch("research.build_provider_queue", return_value=["gemini"]), patch(
-        "research._attempt_provider", AsyncMock(return_value=success)
-    ):
+    with patch(
+        "research.build_provider_queue", return_value=["gemini"]
+    ), patch("research._attempt_provider", AsyncMock(return_value=success)):
         res = await execute_with_fallback("Q", "", primary_provider="gemini")
         assert res["source"] == "gemini"
         assert res["answer"] == "A"
@@ -52,7 +51,7 @@ async def test_retry_then_success(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_circuit_breaker_provider_skipped():
-    # Ensure that when the primary provider's circuit breaker is open, Gemini is skipped
+    # Ensure that when the primary provider's circuit breaker is open, Gemini is skipped  # noqa
     ok = {
         "question": "Q6",
         "answer": "ok",
@@ -61,9 +60,11 @@ async def test_circuit_breaker_provider_skipped():
         "is_fallback": False,
     }
 
-    with patch("research.build_provider_queue", return_value=["gemini", "groq"]), patch(
-        "research.gemini_client", True
-    ), patch("research.gemini_breaker.is_available", return_value=False), patch(
+    with patch(
+        "research.build_provider_queue", return_value=["gemini", "groq"]
+    ), patch("research.gemini_client", True), patch(
+        "research.gemini_breaker.is_available", return_value=False
+    ), patch(
         "research._call_gemini_once",
         AsyncMock(
             side_effect=AssertionError(
@@ -96,9 +97,9 @@ async def test_fallback_to_secondary_provider():
         "is_fallback": False,
     }
 
-    with patch("research.build_provider_queue", return_value=["gemini", "groq"]), patch(
-        "research._attempt_provider", side_effect=[fb, ok]
-    ):
+    with patch(
+        "research.build_provider_queue", return_value=["gemini", "groq"]
+    ), patch("research._attempt_provider", side_effect=[fb, ok]):
         res = await execute_with_fallback("Q3", "", primary_provider="gemini")
         assert res["source"] == "groq"
         assert res["answer"] == "ok"
@@ -113,9 +114,9 @@ async def test_all_providers_fail():
         "error": "err",
         "is_fallback": True,
     }
-    with patch("research.build_provider_queue", return_value=["gemini", "groq"]), patch(
-        "research._attempt_provider", side_effect=[fb, fb]
-    ):
+    with patch(
+        "research.build_provider_queue", return_value=["gemini", "groq"]
+    ), patch("research._attempt_provider", side_effect=[fb, fb]):
         res = await execute_with_fallback("Q4", "", primary_provider="gemini")
         assert res["is_fallback"] is True
         assert res["source"] == "all_providers_failed"

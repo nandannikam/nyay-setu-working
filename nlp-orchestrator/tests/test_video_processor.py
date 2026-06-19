@@ -6,8 +6,8 @@ import pytest
 sys.modules.setdefault("cv2", Mock())
 sys.modules.setdefault("aiohttp", Mock())
 
-import services.video_processor as vp
-from services.video_processor import extract_frames
+import services.video_processor as vp  # noqa
+from services.video_processor import extract_frames  # noqa
 
 
 class DummyCap:
@@ -28,14 +28,20 @@ class DummyCap:
 
 
 @pytest.mark.asyncio
-async def test_extract_frames_frame_interval_controls_frequency(monkeypatch, tmp_path):
+async def test_extract_frames_frame_interval_controls_frequency(
+    monkeypatch, tmp_path
+):
     monkeypatch.setattr(vp, "UPLOAD_DIR", str(tmp_path))
     monkeypatch.setattr(vp.cv2, "VideoCapture", lambda path: DummyCap(61))
     monkeypatch.setattr(vp.cv2, "resize", lambda image, size: image)
     monkeypatch.setattr(vp.cv2, "imwrite", lambda path, image: True)
 
     results = [
-        len(await extract_frames("/tmp/fake.mp4", "job", frame_interval=interval))
+        len(
+            await extract_frames(
+                "/tmp/fake.mp4", "job", frame_interval=interval
+            )
+        )
         for interval in (1, 10, 30)
     ]
 

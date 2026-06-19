@@ -41,16 +41,18 @@ with patch.dict(os.environ, {"GROQ_API_KEY": "test-key-for-ci"}):
 
 
 class TestHinglishPromptRegister:
-    """The tuned prompt must actively steer away from formal Hindi (Issue #849)."""
+    """The tuned prompt must actively steer away from formal Hindi (Issue #849)."""  # noqa
 
     def test_prompt_still_accepts_the_answer_placeholder(self):
-        # The prompt must keep exactly one format placeholder, so .format() works.
+        # The prompt must keep exactly one format placeholder, so .format() works.  # noqa
         assert "{markdown_answer}" in HINGLISH_CONVERSION_PROMPT
         assert HINGLISH_CONVERSION_PROMPT.count("{") == 1
         assert HINGLISH_CONVERSION_PROMPT.count("}") == 1
 
     def test_prompt_formats_without_keyerror(self):
-        rendered = HINGLISH_CONVERSION_PROMPT.format(markdown_answer="SAMPLE ANSWER")
+        rendered = HINGLISH_CONVERSION_PROMPT.format(
+            markdown_answer="SAMPLE ANSWER"
+        )
         assert "SAMPLE ANSWER" in rendered
         assert "{markdown_answer}" not in rendered
 
@@ -65,7 +67,7 @@ class TestHinglishPromptRegister:
         ["nyayalaya", "adhiniyam", "praavdhaan", "kshatipoorti", "vidhik"],
     )
     def test_prompt_names_formal_words_to_avoid(self, formal_word):
-        # The avoid-list anchors the model away from these specific formal terms.
+        # The avoid-list anchors the model away from these specific formal terms.  # noqa
         assert formal_word in HINGLISH_CONVERSION_PROMPT.lower()
 
     @pytest.mark.parametrize(
@@ -86,7 +88,9 @@ class TestHinglishPromptRegister:
 
     def test_prompt_keeps_legal_accuracy_requirement(self):
         lowered = HINGLISH_CONVERSION_PROMPT.lower()
-        assert "section" in lowered  # section numbers / law names stay accurate
+        assert (
+            "section" in lowered
+        )  # section numbers / law names stay accurate
 
 
 # ── convert_to_hinglish: behaviour with a mocked Groq client ─────────────────
@@ -105,7 +109,9 @@ class TestConvertToHinglish:
             "create",
             new=AsyncMock(return_value=fake_response),
         ) as mock_create:
-            result = await convert_to_hinglish("The petitioner may claim compensation.")
+            result = await convert_to_hinglish(
+                "The petitioner may claim compensation."
+            )
 
         assert result == "Dekhiye, aapka case strong hai."
         # The tuned prompt (with the user's answer) must be what we send.
@@ -138,9 +144,17 @@ class TestConvertToHinglish:
 
 class TestDomainHelpers:
     def test_detect_domain_matches_keywords(self):
-        assert detect_domain("My car had an accident on the road") == "accident"
-        assert detect_domain("I need to file an FIR with the police") == "criminal"
-        assert detect_domain("question about my rented flat possession") == "property"
+        assert (
+            detect_domain("My car had an accident on the road") == "accident"
+        )
+        assert (
+            detect_domain("I need to file an FIR with the police")
+            == "criminal"
+        )
+        assert (
+            detect_domain("question about my rented flat possession")
+            == "property"
+        )
 
     def test_detect_domain_defaults_to_general(self):
         assert detect_domain("hello there, random question") == "general"

@@ -38,13 +38,15 @@ from decomposer import decompose_query
 from router import route_questions
 from research import run_parallel_research, execute_with_fallback
 from synthesizer import (
-    synthesize_answers,
-    stream_synthesize_answers,
     synthesize_answers_structured,
     stream_synthesize_answers_structured,
 )
 from validators.citation_validator import validate_citations_from_text
-from avatar_speech import get_interim_messages, convert_to_hinglish, detect_domain
+from avatar_speech import (
+    get_interim_messages,
+    convert_to_hinglish,
+    detect_domain,
+)
 from services.kanoon_search import build_kanoon_context
 from sanitizer import sanitize_user_input, sanitize_prompt_input
 
@@ -53,11 +55,13 @@ from groq import AsyncGroq
 from google import genai
 
 groq_client = AsyncGroq(api_key=GROQ_API_KEY)
-gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+gemini_client = (
+    genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("nlp-orchestrator")
-# ─── Sensitive fields to redact in production ─────────────────────────────────
+# ─── Sensitive fields to redact in production ─────────────────────────────────  # noqa
 SENSITIVE_FIELDS = {"authorization", "password", "token", "api_key", "secret"}
 
 
@@ -71,7 +75,7 @@ def redact(headers: dict) -> dict:
     }
 
 
-# ─── Logging Middleware ───────────────────────────────────────────────────────
+# ─── Logging Middleware ───────────────────────────────────────────────────────  # noqa
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         request_id = str(uuid.uuid4())
@@ -105,7 +109,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         return response
 
 
-# ─── App Setup ────────────────────────────────────────────────────────────────
+# ─── App Setup ────────────────────────────────────────────────────────────────  # noqa
 
 
 @asynccontextmanager
@@ -117,7 +121,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Nyay Saarthi — NLP Orchestrator",
-    description="Legal Reasoning Pipeline: Decompose → Route → Research → Synthesize → Speak",
+    description="Legal Reasoning Pipeline: Decompose → Route → Research → Synthesize → Speak",  # noqa
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -168,7 +172,7 @@ except Exception as e:
     logger.warning("Skipping contradictions router: %s", e)
 
 
-# ─── Models ───────────────────────────────────────────────────────────────────
+# ─── Models ───────────────────────────────────────────────────────────────────  # noqa
 
 
 class LegalQuery(BaseModel):
@@ -194,7 +198,7 @@ class LegalQuery(BaseModel):
         return v
 
 
-# ─── SSE Event Builder ────────────────────────────────────────────────────────
+# ─── SSE Event Builder ────────────────────────────────────────────────────────  # noqa
 
 
 def sse_event(event_type: str, data: dict) -> str:
@@ -202,7 +206,7 @@ def sse_event(event_type: str, data: dict) -> str:
     return json.dumps({"type": event_type, **data})
 
 
-# ─── Core SSE Pipeline ────────────────────────────────────────────────────────
+# ─── Core SSE Pipeline ────────────────────────────────────────────────────────  # noqa
 
 
 async def legal_reasoning_pipeline(query: str, language: str):
@@ -222,7 +226,9 @@ async def legal_reasoning_pipeline(query: str, language: str):
             {"message": "Aapka sawaal samajh raha hoon, thoda wait karein..."},
         )
 
-        kanoon_task = asyncio.create_task(build_kanoon_context(query, max_results=3))
+        kanoon_task = asyncio.create_task(
+            build_kanoon_context(query, max_results=3)
+        )
 
         sub_questions = await decompose_query(safe_query)
         logger.info(f"[Layer 1] Got {len(sub_questions)} sub-questions")
@@ -231,7 +237,7 @@ async def legal_reasoning_pipeline(query: str, language: str):
         # ── Layer 2: Route ───────────────────────────────────────
         routed = route_questions(sub_questions)
         logger.info(
-            f"[Layer 2] Routing: {[(r['question'][:30], r['model']) for r in routed]}"
+            f"[Layer 2] Routing: {[(r['question'][:30], r['model']) for r in routed]}"  # noqa
         )
 
         try:
@@ -240,18 +246,18 @@ async def legal_reasoning_pipeline(query: str, language: str):
             logger.error("[Layer 2] Indian Kanoon fetch failed: %s", e)
             kanoon_context = ""
 
-        # ── Layer 5a: Interim Avatar Messages (to stream while research runs) ──
+        # ── Layer 5a: Interim Avatar Messages (to stream while research runs) ──  # noqa
         interim_messages = get_interim_messages(query, count=3)
 
         # ── Layer 3: Parallel Research ───────────────────────────
         yield sse_event("research_start", {"total": len(routed)})
 
-        # Launch research as a background Task so we can yield interims concurrently
+        # Launch research as a background Task so we can yield interims concurrently  # noqa
         research_task = asyncio.create_task(
             run_parallel_research(routed, kanoon_context=kanoon_context)
         )
 
-        # Yield interim avatar messages every 2.5s while research task completes
+        # Yield interim avatar messages every 2.5s while research task completes  # noqa
         for msg in interim_messages:
             if research_task.done():
                 break
@@ -278,7 +284,7 @@ async def legal_reasoning_pipeline(query: str, language: str):
         yield sse_event(
             "avatar_update",
             {
-                "message": "Sab information mila di, ab aapke liye summary bana raha hoon..."
+                "message": "Sab information mila di, ab aapke liye summary bana raha hoon..."  # noqa
             },
         )
 
@@ -288,7 +294,9 @@ async def legal_reasoning_pipeline(query: str, language: str):
         cited_laws_from_stream = []
 
         # Stream synthesis tokens using the structured generator
-        async for chunk in stream_synthesize_answers_structured(safe_query, results):
+        async for chunk in stream_synthesize_answers_structured(
+            safe_query, results
+        ):
             if chunk.get("text"):
                 synthesized_md += chunk["text"]
                 yield sse_event("synthesis_token", {"chunk": chunk["text"]})
@@ -301,10 +309,13 @@ async def legal_reasoning_pipeline(query: str, language: str):
             validation_results = validate_citations_from_text(synthesized_md)
             if validation_results:
                 logger.info(
-                    "[Layer 4] Citation validation results: %s", validation_results
+                    "[Layer 4] Citation validation results: %s",
+                    validation_results,
                 )
         except Exception as e:
-            logger.warning("[Layer 4] Citation validation failed (non-blocking): %s", e)
+            logger.warning(
+                "[Layer 4] Citation validation failed (non-blocking): %s", e
+            )
             validation_results = []
 
         # ── Layer 5b: Hinglish Conversion ────────────────────────
@@ -349,7 +360,7 @@ async def legal_reasoning_pipeline(query: str, language: str):
                 pass
 
 
-# ─── Endpoints ────────────────────────────────────────────────────────────────
+# ─── Endpoints ────────────────────────────────────────────────────────────────  # noqa
 
 
 @app.get("/health")
@@ -365,7 +376,7 @@ async def get_models():
     }
 
 
-# ─── Audio Streaming WebSocket (Issue #1322) ──────────────────────────────────
+# ─── Audio Streaming WebSocket (Issue #1322) ──────────────────────────────────  # noqa
 @app.websocket("/ws/audio-stream")
 async def audio_stream_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -381,7 +392,7 @@ async def audio_stream_endpoint(websocket: WebSocket):
             await asyncio.sleep(0.5)
 
             # 3. Return a mock translated caption string
-            mock_caption = "[Simulated Live Caption]: न्यायालय की कार्यवाही... / Court proceedings..."
+            mock_caption = "[Simulated Live Caption]: न्यायालय की कार्यवाही... / Court proceedings..."  # noqa
 
             # 4. Send the transcribed text back to the frontend
             await websocket.send_text(mock_caption)
@@ -397,7 +408,7 @@ async def analyze_stream(body: LegalQuery, request: Request):
     """
     Primary SSE endpoint — streams the full legal reasoning pipeline.
     Frontend connects using fetch + ReadableStream for real-time updates.
-    Input validation and sanitization is handled by the LegalQuery Pydantic model.
+    Input validation and sanitization is handled by the LegalQuery Pydantic model.  # noqa
     """
 
     logger.info(f"[Stream] New query: {body.query[:80]}")
@@ -420,9 +431,9 @@ async def analyze_stream(body: LegalQuery, request: Request):
 @app.post("/api/legal/analyze")
 async def analyze_sync(body: LegalQuery):
     """
-    Synchronous endpoint — runs the full pipeline and returns all results at once.
+    Synchronous endpoint — runs the full pipeline and returns all results at once.  # noqa
     Use only for testing. In production, use /analyze-stream for real-time UX.
-    Input validation and sanitization is handled by the LegalQuery Pydantic model.
+    Input validation and sanitization is handled by the LegalQuery Pydantic model.  # noqa
     """
 
     logger.info(f"[Sync] Analyzing: {body.query[:80]}")
@@ -430,20 +441,28 @@ async def analyze_sync(body: LegalQuery):
     sub_questions = await decompose_query(body.query)
     routed = route_questions(sub_questions)
     try:
-        kanoon_context, _ = await build_kanoon_context(body.query, max_results=3)
+        kanoon_context, _ = await build_kanoon_context(
+            body.query, max_results=3
+        )
     except Exception as e:
         logger.error("[Sync] Indian Kanoon fetch failed: %s", e)
         kanoon_context = ""
-    results = await run_parallel_research(routed, kanoon_context=kanoon_context)
+    results = await run_parallel_research(
+        routed, kanoon_context=kanoon_context
+    )
     synthesis = await synthesize_answers_structured(body.query, results)
     synthesized = synthesis.answer_markdown
 
     try:
         validation_results = validate_citations_from_text(synthesized)
         if validation_results:
-            logger.info("[Sync] Citation validation results: %s", validation_results)
+            logger.info(
+                "[Sync] Citation validation results: %s", validation_results
+            )
     except Exception as e:
-        logger.warning("[Sync] Citation validation failed (non-blocking): %s", e)
+        logger.warning(
+            "[Sync] Citation validation failed (non-blocking): %s", e
+        )
         validation_results = []
 
     hinglish = await convert_to_hinglish(synthesized)
@@ -465,21 +484,21 @@ async def analyze_sync(body: LegalQuery):
 
 # ─── Deep Research Pipeline ──────────────────────────────────────────────────
 
-DEEP_RESEARCH_SYSTEM_PROMPT = """You are Nyay Saarthi, a specialized Indian Legal AI Assistant. 
-Your SOLE purpose is to provide legal information, analysis, and guidance based on Indian Law (IPC, BNS, MVA, Constitution, etc.).
+DEEP_RESEARCH_SYSTEM_PROMPT = """You are Nyay Saarthi, a specialized Indian Legal AI Assistant.  # noqa
+Your SOLE purpose is to provide legal information, analysis, and guidance based on Indian Law (IPC, BNS, MVA, Constitution, etc.).  # noqa
 
 STRICT MANDATE:
-- If the user query is NOT related to Indian Law, legal procedures, or the Indian justice system, you MUST politely refuse to answer.
-- State: "I am a specialized Legal AI Assistant. I can only assist with queries related to Indian Law and legal procedures. Your question seems to be outside my legal domain."
-- DO NOT answer questions about technology, science, general history, or other non-legal topics.
-- Answer ONLY using the provided Indian Kanoon legal context below when possible.
+- If the user query is NOT related to Indian Law, legal procedures, or the Indian justice system, you MUST politely refuse to answer.  # noqa
+- State: "I am a specialized Legal AI Assistant. I can only assist with queries related to Indian Law and legal procedures. Your question seems to be outside my legal domain."  # noqa
+- DO NOT answer questions about technology, science, general history, or other non-legal topics.  # noqa
+- Answer ONLY using the provided Indian Kanoon legal context below when possible.  # noqa
 
 CONTEXT FROM INDIAN KANOON:
 {kanoon_context}
 
 USER QUERY: {user_query}
 
-If the topic is legal but not found in the context, use your internal legal knowledge but cite relevant sections and add a disclaimer.
+If the topic is legal but not found in the context, use your internal legal knowledge but cite relevant sections and add a disclaimer.  # noqa
 Structure your response with:
 1. Direct answer to the question
 2. Relevant legal sections with exact numbers
@@ -508,7 +527,7 @@ async def call_groq_with_retry(grounded_prompt, query):
 
 async def deep_research_pipeline(query: str, language: str):
     """
-    Async generator that yields SSE events through the 5-stage deep research pipeline.
+    Async generator that yields SSE events through the 5-stage deep research pipeline.  # noqa
     Each stage emits: stage update, avatar_speak, and relevant data events.
     """
     try:
@@ -516,11 +535,13 @@ async def deep_research_pipeline(query: str, language: str):
         # Sanitize query for prompt injection before sending to AI
         safe_query = sanitize_prompt_input(query)
         logger.info(
-            f"[Deep Research] Stage 1: Understanding query: {safe_query[:60]}..."
+            f"[Deep Research] Stage 1: Understanding query: {safe_query[:60]}..."  # noqa
         )
 
         domain = detect_domain(query)
-        domain_label = domain.upper() if domain != "general" else "GENERAL LEGAL"
+        domain_label = (
+            domain.upper() if domain != "general" else "GENERAL LEGAL"
+        )
 
         yield sse_event(
             "stage",
@@ -528,13 +549,13 @@ async def deep_research_pipeline(query: str, language: str):
                 "stage": "understanding",
                 "status": "active",
                 "domain": domain_label,
-                "message": f"Analyzing your query — detected domain: {domain_label}",
+                "message": f"Analyzing your query — detected domain: {domain_label}",  # noqa
             },
         )
         yield sse_event(
             "avatar_speak",
             {
-                "message": "Aapka sawaal samajh aa gaya. Legal domain identify ho raha hai..."
+                "message": "Aapka sawaal samajh aa gaya. Legal domain identify ho raha hai..."  # noqa
             },
         )
         await asyncio.sleep(1)  # Brief pause for UX
@@ -562,7 +583,9 @@ async def deep_research_pipeline(query: str, language: str):
         )
         yield sse_event(
             "avatar_speak",
-            {"message": "Indian Kanoon mein relevant cases dhundh raha hoon..."},
+            {
+                "message": "Indian Kanoon mein relevant cases dhundh raha hoon..."  # noqa
+            },
         )
 
         kanoon_context, kanoon_results = await build_kanoon_context(
@@ -570,7 +593,8 @@ async def deep_research_pipeline(query: str, language: str):
         )
 
         yield sse_event(
-            "kanoon_results", {"results": kanoon_results[:2]}  # Send top 2 for display
+            "kanoon_results",
+            {"results": kanoon_results[:2]},  # Send top 2 for display
         )
         yield sse_event(
             "stage",
@@ -602,7 +626,7 @@ async def deep_research_pipeline(query: str, language: str):
                 "status": "active",
                 "complexity": round(complexity, 2),
                 "model": model_choice,
-                "message": f"Complexity score: {round(complexity, 2)} — sending to {'Gemini for deep analysis' if model_choice == 'gemini' else 'Groq for fast response'}",
+                "message": f"Complexity score: {round(complexity, 2)} — sending to {'Gemini for deep analysis' if model_choice == 'gemini' else 'Groq for fast response'}",  # noqa
             },
         )
 
@@ -610,13 +634,15 @@ async def deep_research_pipeline(query: str, language: str):
             yield sse_event(
                 "avatar_speak",
                 {
-                    "message": "Yeh complex case hai, Gemini se deep analysis kar raha hoon..."
+                    "message": "Yeh complex case hai, Gemini se deep analysis kar raha hoon..."  # noqa
                 },
             )
         else:
             yield sse_event(
                 "avatar_speak",
-                {"message": "Simple query hai, Groq se fast response le raha hoon..."},
+                {
+                    "message": "Simple query hai, Groq se fast response le raha hoon..."  # noqa
+                },
             )
 
         await asyncio.sleep(0.5)
@@ -652,7 +678,7 @@ async def deep_research_pipeline(query: str, language: str):
             kanoon_context=(
                 kanoon_context
                 if kanoon_context
-                else "No specific Indian Kanoon judgments found for this query. If the query is legal in nature, provide general legal guidance based on Indian statutes. If the query is non-legal, follow the refusal mandate in your system prompt."
+                else "No specific Indian Kanoon judgments found for this query. If the query is legal in nature, provide general legal guidance based on Indian statutes. If the query is non-legal, follow the refusal mandate in your system prompt."  # noqa
             ),
             user_query=query,
         )
@@ -671,7 +697,8 @@ async def deep_research_pipeline(query: str, language: str):
                 cached = True
 
         if not cached and (
-            model_choice == "groq" or (model_choice == "gemini" and not gemini_client)
+            model_choice == "groq"
+            or (model_choice == "gemini" and not gemini_client)
         ):
             cache_key = generate_cache_key(
                 "groq", grounded_prompt, GROQ_MODEL_FAST, user_query=query
@@ -694,12 +721,18 @@ async def deep_research_pipeline(query: str, language: str):
             if ai_answer:
                 if model_choice == "gemini":
                     cache_key = generate_cache_key(
-                        "gemini", grounded_prompt, GEMINI_MODEL, user_query=query
+                        "gemini",
+                        grounded_prompt,
+                        GEMINI_MODEL,
+                        user_query=query,
                     )
                     set_cached_response(cache_key, ai_answer)
                 elif model_choice == "groq":
                     cache_key = generate_cache_key(
-                        "groq", grounded_prompt, GROQ_MODEL_FAST, user_query=query
+                        "groq",
+                        grounded_prompt,
+                        GROQ_MODEL_FAST,
+                        user_query=query,
                     )
                     set_cached_response(cache_key, ai_answer)
 
@@ -708,7 +741,7 @@ async def deep_research_pipeline(query: str, language: str):
             words = ai_answer.split()
             chunk_size = 8
             for i in range(0, len(words), chunk_size):
-                chunk = " ".join(words[i : i + chunk_size])
+                chunk = " ".join(words[i : i + chunk_size])  # noqa
                 yield sse_event("reasoning", {"text": chunk})
                 await asyncio.sleep(0.1)  # Small delay for streaming effect
 
@@ -738,7 +771,9 @@ async def deep_research_pipeline(query: str, language: str):
             validate_citations_from_text(ai_answer) if ai_answer else []
         )
         if citation_validation:
-            logger.info("[Deep Research] Citation validation: %s", citation_validation)
+            logger.info(
+                "[Deep Research] Citation validation: %s", citation_validation
+            )
 
         # Convert to Hinglish for avatar speech
         hinglish_verdict = await convert_to_hinglish(
@@ -751,7 +786,8 @@ async def deep_research_pipeline(query: str, language: str):
             citations.append({"title": r["title"], "doc_id": r["doc_id"]})
 
         yield sse_event(
-            "avatar_speak", {"message": f"Analysis complete. {hinglish_verdict}"}
+            "avatar_speak",
+            {"message": f"Analysis complete. {hinglish_verdict}"},
         )
 
         yield sse_event(
@@ -795,7 +831,7 @@ async def deep_research(body: LegalQuery, request: Request):
     Indian Kanoon context. Frontend connects directly to this for
     the reasoning panel + avatar speech updates.
     """
-    # Input validation and sanitization is handled by the LegalQuery Pydantic model.
+    # Input validation and sanitization is handled by the LegalQuery Pydantic model.  # noqa
     logger.info(f"[Deep Research] New query: {body.query[:80]}")
 
     async def event_generator():
@@ -813,7 +849,7 @@ async def deep_research(body: LegalQuery, request: Request):
     return EventSourceResponse(event_generator())
 
 
-# ─── Run ──────────────────────────────────────────────────────────────────────
+# ─── Run ──────────────────────────────────────────────────────────────────────  # noqa
 
 if __name__ == "__main__":
     import uvicorn

@@ -4,7 +4,6 @@ Combines all sub-answers into one structured, clean final legal answer.
 Includes relevant IPC / BNS / MVA section references.
 """
 
-import asyncio
 import json
 import re
 from groq import AsyncGroq
@@ -14,30 +13,30 @@ from models.schemas import SynthesisResult
 
 client = AsyncGroq(api_key=GROQ_API_KEY)
 
-STRUCTURED_SYNTHESIS_PROMPT = """You are a senior Indian legal expert writing a final comprehensive legal opinion.
+STRUCTURED_SYNTHESIS_PROMPT = """You are a senior Indian legal expert writing a final comprehensive legal opinion.  # noqa
 
 You have received research results from multiple focused legal sub-queries.
-Synthesize these into a single, clear, well-structured answer for an Indian citizen.
+Synthesize these into a single, clear, well-structured answer for an Indian citizen.  # noqa
 
 Research Results:
 {research_results}
 
 Original User Question: {original_query}
 
-Return ONLY a valid JSON object (no markdown fences, no commentary) with EXACTLY these two keys:
-  "answer_markdown": a string containing the full answer in clean markdown. It must:
+Return ONLY a valid JSON object (no markdown fences, no commentary) with EXACTLY these two keys:  # noqa
+  "answer_markdown": a string containing the full answer in clean markdown. It must:  # noqa
       1. Start with a clear, direct answer to the main question (2-3 sentences)
-      2. Provide key legal provisions with exact section numbers (IPC/BNS/CPC/CrPC/MVA as applicable)
+      2. Provide key legal provisions with exact section numbers (IPC/BNS/CPC/CrPC/MVA as applicable)  # noqa
       3. Outline practical steps the user can take
       4. Mention any important deadlines or limitations
-      5. Include a brief disclaimer that this is AI-generated legal information and a lawyer should be consulted
-      Use ## headers and - bullets where appropriate. Write in simple, accessible English.
-  "cited_laws": an array of strings listing every distinct statutory provision you cited,
+      5. Include a brief disclaimer that this is AI-generated legal information and a lawyer should be consulted  # noqa
+      Use ## headers and - bullets where appropriate. Write in simple, accessible English.  # noqa
+  "cited_laws": an array of strings listing every distinct statutory provision you cited,  # noqa
       each in the form "<ACT> Sec <NUMBER>" or "Article <NUMBER>"
-      (e.g. ["IPC Sec 302", "CrPC Sec 144", "Article 21"]). Use an empty array [] if none.
+      (e.g. ["IPC Sec 302", "CrPC Sec 144", "Article 21"]). Use an empty array [] if none.  # noqa
 
 Example:
-{{"answer_markdown": "## Answer\\n...", "cited_laws": ["IPC Sec 304A", "MVA Sec 166"]}}
+{{"answer_markdown": "## Answer\\n...", "cited_laws": ["IPC Sec 304A", "MVA Sec 166"]}}  # noqa
 """
 
 _ACT_DISPLAY = {
@@ -50,10 +49,10 @@ _ACT_DISPLAY = {
     "Article": "Article",
 }
 
-SYNTHESIS_PROMPT = """You are a senior Indian legal expert writing a final comprehensive legal opinion.
+SYNTHESIS_PROMPT = """You are a senior Indian legal expert writing a final comprehensive legal opinion.  # noqa
 
 You have received research results from multiple focused legal sub-queries. 
-Synthesize these into a single, clear, well-structured answer for an Indian citizen.
+Synthesize these into a single, clear, well-structured answer for an Indian citizen.  # noqa
 
 Research Results:
 {research_results}
@@ -62,18 +61,18 @@ Original User Question: {original_query}
 
 Your synthesis must:
 1. Start with a clear, direct answer to the main question (2-3 sentences)
-2. Provide key legal provisions with exact section numbers (IPC/BNS/CPC/MVA as applicable)
+2. Provide key legal provisions with exact section numbers (IPC/BNS/CPC/MVA as applicable)  # noqa
 3. Outline practical steps the user can take
 4. Mention any important deadlines or limitations
-5. Include a brief disclaimer that this is AI-generated legal information and a lawyer should be consulted for specific cases
+5. Include a brief disclaimer that this is AI-generated legal information and a lawyer should be consulted for specific cases  # noqa
 
-Format your response in clear markdown with headers (##) and bullet points (-) where appropriate.
+Format your response in clear markdown with headers (##) and bullet points (-) where appropriate.  # noqa
 Write in simple, accessible English. Avoid heavy legal jargon.
 """
 
 
 def format_research_for_synthesis(research_results: list[dict]) -> str:
-    """Format the research results into a readable block for the synthesis prompt."""
+    """Format the research results into a readable block for the synthesis prompt."""  # noqa
     formatted = []
     for i, result in enumerate(research_results, 1):
         if result.get("answer"):
@@ -85,7 +84,9 @@ def format_research_for_synthesis(research_results: list[dict]) -> str:
     return "\n---\n".join(formatted)
 
 
-async def synthesize_answers(original_query: str, research_results: list[dict]) -> str:
+async def synthesize_answers(
+    original_query: str, research_results: list[dict]
+) -> str:
     """
     Synthesize multiple sub-answers into one final structured legal response.
     """
@@ -128,7 +129,7 @@ async def stream_synthesize_answers(query, research_results):
         {"role": "system", "content": "You are a legal synthesis assistant."},
         {
             "role": "user",
-            "content": f"Query: {query}\n\nResearch Results:\n{research_results}",
+            "content": f"Query: {query}\n\nResearch Results:\n{research_results}",  # noqa
         },
     ]
 
@@ -150,12 +151,14 @@ async def stream_synthesize_answers(query, research_results):
         print(f"[Stream Synthesizer] Standard stream failed: {e}")
 
 
-# ─── Structured synthesis with explicit cited-law extraction (issue #851) ─────
+# ─── Structured synthesis with explicit cited-law extraction (issue #851) ─────  # noqa
 _CITED_LAW_RE = re.compile(r"^[A-Za-z]")
 
 _FENCE_MARKER = "`" * 3
 
-_JSON_FENCE_START_RE = re.compile(r"^" + _FENCE_MARKER + r"(?:json)?\s*", re.IGNORECASE)
+_JSON_FENCE_START_RE = re.compile(
+    r"^" + _FENCE_MARKER + r"(?:json)?\s*", re.IGNORECASE
+)
 _JSON_FENCE_END_RE = re.compile(r"\s*" + _FENCE_MARKER + r"$")
 
 
@@ -232,11 +235,15 @@ async def synthesize_answers_structured(
         payload = json.loads(_strip_json_fence(raw), strict=False)
 
         if not isinstance(payload, dict):
-            raise ValueError("structured synthesis did not return a JSON object")
+            raise ValueError(
+                "structured synthesis did not return a JSON object"
+            )
 
         markdown = (payload.get("answer_markdown") or "").strip()
         if not markdown:
-            raise ValueError("structured synthesis returned empty answer_markdown")
+            raise ValueError(
+                "structured synthesis returned empty answer_markdown"
+            )
 
         cited = payload.get("cited_laws", [])
         if not isinstance(cited, list):
@@ -279,8 +286,12 @@ async def stream_synthesize_answers_structured(
             stream=True,
         )
     except Exception as e:
-        print(f"[Stream Synthesizer] Structured API call failed, falling back: {e}")
-        async for chunk in stream_synthesize_answers(original_query, research_results):
+        print(
+            f"[Stream Synthesizer] Structured API call failed, falling back: {e}"  # noqa
+        )
+        async for chunk in stream_synthesize_answers(
+            original_query, research_results
+        ):
             yield {"text": chunk, "citations": []}
         return
 
@@ -298,7 +309,7 @@ async def stream_synthesize_answers_structured(
             match = re.search(r'"answer_markdown"\s*:\s*"', buffer)
             if match:
                 in_markdown = True
-                buffer = buffer[match.end() :]
+                buffer = buffer[match.end() :]  # noqa
 
         # STATE 2: Actively streaming markdown content
         elif in_markdown:
@@ -314,7 +325,7 @@ async def stream_synthesize_answers_structured(
                         .replace('\\"', '"'),
                         "citations": [],
                     }
-                buffer = buffer[end_match.end() :]
+                buffer = buffer[end_match.end() :]  # noqa
             else:
                 if buffer.endswith("\\"):
                     text_to_send = buffer[:-1]
@@ -331,20 +342,24 @@ async def stream_synthesize_answers_structured(
                         "citations": [],
                     }
 
-        # STATE 3: Markdown finished, gather remaining tokens for the citations array
+        # STATE 3: Markdown finished, gather remaining tokens for the citations array  # noqa
         elif markdown_done:
             citations_buffer += token
 
     # POST-STREAM processing: Extract citations from the tail buffer
     try:
         combined_tail = buffer + citations_buffer
-        array_match = re.search(r'"cited_laws"\s*:\s*(\[[^\]]*\])', combined_tail)
+        array_match = re.search(
+            r'"cited_laws"\s*:\s*(\[[^\]]*\])', combined_tail
+        )
         if array_match:
             cited = json.loads(array_match.group(1))
             if isinstance(cited, list):
                 yield {"text": "", "citations": _dedupe_cited_laws(cited)}
                 return
     except Exception as e:
-        print(f"[Stream Synthesizer] Failed parsing citations from stream tail: {e}")
+        print(
+            f"[Stream Synthesizer] Failed parsing citations from stream tail: {e}"  # noqa
+        )
 
     yield {"text": "", "citations": []}

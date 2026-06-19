@@ -56,15 +56,20 @@ def _resolve_device(torch_module: Any) -> Any:
     requested_device = (TROCR_DEVICE or "").strip().lower()
 
     if requested_device:
-        if requested_device.startswith("cuda") and not torch_module.cuda.is_available():
+        if (
+            requested_device.startswith("cuda")
+            and not torch_module.cuda.is_available()
+        ):
             logger.warning(
-                "TROCR_DEVICE=%s requested but CUDA is unavailable. Falling back to CPU.",
+                "TROCR_DEVICE=%s requested but CUDA is unavailable. Falling back to CPU.",  # noqa
                 TROCR_DEVICE,
             )
             return torch_module.device("cpu")
         return torch_module.device(requested_device)
 
-    return torch_module.device("cuda" if torch_module.cuda.is_available() else "cpu")
+    return torch_module.device(
+        "cuda" if torch_module.cuda.is_available() else "cpu"
+    )
 
 
 def _load_model() -> tuple[Any, Any, Any]:
@@ -74,7 +79,11 @@ def _load_model() -> tuple[Any, Any, Any]:
         return _processor, _model, _device
 
     with _model_lock:
-        if _processor is not None and _model is not None and _device is not None:
+        if (
+            _processor is not None
+            and _model is not None
+            and _device is not None
+        ):
             return _processor, _model, _device
 
         try:
@@ -82,7 +91,9 @@ def _load_model() -> tuple[Any, Any, Any]:
             from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
             token = HF_TOKEN or None
-            logger.info("Loading TrOCR model '%s' for Modi OCR.", TROCR_MODEL_NAME)
+            logger.info(
+                "Loading TrOCR model '%s' for Modi OCR.", TROCR_MODEL_NAME
+            )
 
             try:
                 _processor = TrOCRProcessor.from_pretrained(
@@ -90,7 +101,7 @@ def _load_model() -> tuple[Any, Any, Any]:
                 )
             except Exception as proc_exc:
                 logger.warning(
-                    "Fast tokenizer load failed for '%s' (%s); retrying with use_fast=False.",
+                    "Fast tokenizer load failed for '%s' (%s); retrying with use_fast=False.",  # noqa
                     TROCR_MODEL_NAME,
                     proc_exc,
                 )
@@ -112,8 +123,12 @@ def _load_model() -> tuple[Any, Any, Any]:
             logger.info("TrOCR model loaded on %s.", device)
             return _processor, _model, _device
         except Exception as exc:
-            logger.error("Failed to load OCR model '%s': %s", TROCR_MODEL_NAME, exc)
-            raise ModiOCRServiceError(f"Failed to load OCR model: {exc}") from exc
+            logger.error(
+                "Failed to load OCR model '%s': %s", TROCR_MODEL_NAME, exc
+            )
+            raise ModiOCRServiceError(
+                f"Failed to load OCR model: {exc}"
+            ) from exc
 
 
 def _resize_normalized(image: np.ndarray) -> np.ndarray:
@@ -133,7 +148,9 @@ def _resize_normalized(image: np.ndarray) -> np.ndarray:
     interpolation = cv2.INTER_AREA if scale < 1.0 else cv2.INTER_CUBIC
     new_width = max(1, int(width * scale))
     new_height = max(1, int(height * scale))
-    return cv2.resize(image, (new_width, new_height), interpolation=interpolation)
+    return cv2.resize(
+        image, (new_width, new_height), interpolation=interpolation
+    )
 
 
 def preprocess_image(image_bytes: bytes) -> Image.Image:
@@ -177,7 +194,7 @@ def cleanup_transliterated_text(text: str) -> str:
 
 
 def apply_modi_to_devanagari_mapping(text: str) -> str:
-    # Most TrOCR checkpoints return Unicode text directly. This hook keeps future
+    # Most TrOCR checkpoints return Unicode text directly. This hook keeps future  # noqa
     # Modi-specific character mapping isolated from route and inference code.
     modi_to_devanagari = {
         "\U00011600": "\u0905",
@@ -256,7 +273,9 @@ def _run_ocr(image_bytes: bytes) -> str:
         image = preprocess_image(image_bytes)
         processor, model, device = _load_model()
 
-        pixel_values = processor(image, return_tensors="pt").pixel_values.to(device)
+        pixel_values = processor(image, return_tensors="pt").pixel_values.to(
+            device
+        )
         with torch.no_grad():
             generated_ids = model.generate(
                 pixel_values,
@@ -288,9 +307,9 @@ async def recognize_modi_pages(
     max_concurrency: int | None = None,
 ) -> list[dict]:
     """
-    OCR many page images concurrently and return per-page results in input order.
+    OCR many page images concurrently and return per-page results in input order.  # noqa
 
-    Previously a multi-page document (e.g. a 50-page PDF rendered to images) was
+    Previously a multi-page document (e.g. a 50-page PDF rendered to images) was  # noqa
     processed one page at a time. Here each page is dispatched through
     `recognize_modi_image` (which offloads the blocking model inference to a
     worker thread) and run concurrently via `asyncio.gather`, bounded by a
@@ -335,8 +354,12 @@ async def recognize_modi_pages(
                     "predicted_text": "",
                     "error": str(exc),
                 }
-            except Exception as exc:  # defensive: never let one page sink the batch
-                logger.error("Unexpected OCR error on page %d: %s", index + 1, exc)
+            except (
+                Exception
+            ) as exc:  # defensive: never let one page sink the batch
+                logger.error(
+                    "Unexpected OCR error on page %d: %s", index + 1, exc
+                )
                 return {
                     "page": index + 1,
                     "status": "error",

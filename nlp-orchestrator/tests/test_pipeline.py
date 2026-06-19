@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from main import deep_research_pipeline
+from main import deep_research_pipeline  # noqa: E402
 
 
 @pytest.mark.asyncio
@@ -22,7 +22,9 @@ async def test_deep_research_pipeline_flow(
 
     mock_decompose.return_value = ["What is FIR?", "How to file FIR?"]
 
-    mock_research.return_value = [{"answer": "FIR means First Information Report"}]
+    mock_research.return_value = [
+        {"answer": "FIR means First Information Report"}
+    ]
 
     mock_synthesize.return_value = "Final synthesized response"
 
@@ -33,7 +35,9 @@ async def test_deep_research_pipeline_flow(
 
     events = []
 
-    async for event in deep_research_pipeline("Explain FIR process", "english"):
+    async for event in deep_research_pipeline(
+        "Explain FIR process", "english"
+    ):
         events.append(event)
 
     assert len(events) > 0
@@ -61,7 +65,7 @@ async def test_deep_research_pipeline_gemini_cache_hit(
     )
     mock_get_cached_response.return_value = "Cached analysis"
 
-    query = "This is a long enough complex query designed to trigger the Gemini model choice and hit cache"
+    query = "This is a long enough complex query designed to trigger the Gemini model choice and hit cache"  # noqa
     events = []
 
     with patch("main.gemini_client", True):
