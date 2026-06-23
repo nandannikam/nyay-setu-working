@@ -174,7 +174,6 @@ export default function Header({ hideAuthButtons = false }) {
                 }
             },
         };
-        // -------------------------------------------------------------
 
         // Fallback to labelKey directly if translation returns the exact key
 
